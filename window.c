@@ -3,9 +3,19 @@
  * \author Farès BELHADJ, amsi@ai.univ-paris8.fr
  * \date April 15 2016 */
 #include <stdio.h>
+#include <stdlib.h>
+#include <time.h>
 #include <GL4D/gl4du.h>
 #include <GL4D/gl4df.h>
 #include <GL4D/gl4duw_SDL2.h>
+
+#define NUM_PARTICLES 1000
+
+typedef struct {
+    GLfloat position[3];
+    GLfloat color[4];
+} Particle;
+
 /* Prototypes des fonctions statiques contenues dans ce fichier C */
 static void init(void);
 static void resize(int w, int h);
@@ -16,7 +26,7 @@ static int _wW = 800, _wH = 600;
 /*!\brief identifiant du programme GLSL */
 static GLuint _pId = 0;
 /*!\brief quelques objets géométriques */
-static GLuint _sphere = 0, _cube = 0, _quad = 0, _torus = 0;
+static GLuint _sphere = 0, _quad = 0;
 /*!\brief La fonction principale créé la fenêtre d'affichage,
  * initialise GL et les données, affecte les fonctions d'événements et
  * lance la boucle principale d'affichage.*/
@@ -41,9 +51,7 @@ static void init(void) {
   gl4duGenMatrix(GL_FLOAT, "projectionMatrix");
   resize(_wW, _wH);
   _sphere = gl4dgGenSpheref(30, 30);
-  _cube = gl4dgGenCubef();
   _quad = gl4dgGenQuadf();
-  _torus = gl4dgGenTorusf(300, 30, 0.1f);
 }
 /*!\brief Cette fonction paramétre la vue (viewport) OpenGL en
  * fonction des dimensions de la fenêtre.*/
@@ -59,7 +67,7 @@ static void resize(int w, int h) {
 /*!\brief dessine dans le contexte OpenGL actif. */
 static void draw(void) {
   static GLfloat a = 0;
-  GLfloat rouge[] = {1, 0, 0, 1}, vert[] = {0, 1, 0, 1}, bleu[] = {0, 0, 1, 1}, jaune[] = {1, 1, 0, 1};
+  GLfloat rouge[] = {1, 0, 0, 1}, vert[] = {0, 1, 0, 1};
   glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
   gl4duBindMatrix("modelViewMatrix");
   gl4duLoadIdentityf();
@@ -81,18 +89,6 @@ static void draw(void) {
   gl4duPopMatrix();
   gl4dgDraw(_sphere);
 
-  gl4duRotatef(a, 0, 1, 0);
-  gl4duTranslatef(3, 0, 0);
-  gl4duPushMatrix(); {
-    gl4duScalef(0.4f, 0.4f, 0.4f);
-    gl4duSendMatrices();
-  } gl4duPopMatrix();
-  glUniform4fv(glGetUniformLocation(_pId, "couleur"), 1, bleu);
-  gl4dgDraw(_cube);
-  gl4duRotatef(-3 * a, 1, 0, 0);
-  gl4duSendMatrices();
-  glUniform4fv(glGetUniformLocation(_pId, "couleur"), 1, jaune);
-  gl4dgDraw(_torus);
   /* Décommenter pour avoir un rendu sympathique pour pas cher :) */
   /*   gl4dfBlur(0, 0, 5, 1, 0, GL_FALSE); */
   /*   gl4dfSobelSetMixMode(GL4DF_SOBEL_MIX_MULT); */
