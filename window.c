@@ -1,107 +1,162 @@
 /*!\file window.c
- * \brief géométries lumière diffuse et transformations de base en GL4Dummies
- * \author Farès BELHADJ, amsi@ai.univ-paris8.fr
- * \date April 15 2016 */
-#include <stdio.h>
-#include <stdlib.h>
-#include <time.h>
+ *
+ * \brief Bruit de Perlin appliqu� en GPU
+ * \author Far�s BELHADJ, amsi@ai.univ-paris8.fr
+ * \date March 3 2017
+ */
 #include <GL4D/gl4du.h>
+#include <GL4D/gl4dg.h>
 #include <GL4D/gl4df.h>
 #include <GL4D/gl4duw_SDL2.h>
+
 /* Prototypes des fonctions statiques contenues dans ce fichier C */
-#define NUM_PARTICLES 1000
+static void         init(void);
+static void         keydown(int keycode);
+static void         draw(void);
+static void         quit(void);
+/* fonctions externes dans noise.c */
+extern void initNoiseTextures(void);
+extern void useNoiseTextures(GLuint pid, int shift);
+extern void unuseNoiseTextures(int shift);
+extern void freeNoiseTextures(void);
 
-typedef struct {
-    GLfloat position[3];
-    GLfloat color[4];
-    GLuint sphereId;
-} Particle;
 
-static void init(void);
-static void resize(int w, int h);
-static void draw(void);
-static void quit(void);
-/*!\brief dimensions de la fenêtre */
-static int _wW = 800, _wH = 600;
-/*!\brief identifiant du programme GLSL */
+/*!\brief identifiant de la g�om�trie */
+static GLuint _geom = 0;
+/*!\brief identifiant des GLSL program */
 static GLuint _pId = 0;
-/*!\brief quelques objets géométriques */
-static Particle particles[NUM_PARTICLES];
+static GLuint _tid = 0;
+/*!\brief arrete l'animation */
+static GLuint _pause = 0;
+/*!\brief coefficient de zoom */
+static GLfloat _zoom = 10.0;
+static GLuint _disk = 0;
+static GLint _blur = 0;
+/*!\brief temps */
+static GLfloat _temps = 0.1;
 
-/*!\brief La fonction principale créé la fenêtre d'affichage,
- * initialise GL et les données, affecte les fonctions d'événements et
- * lance la boucle principale d'affichage.*/
+/*!\brief La fonction principale cr�� la fen�tre d'affichage,
+ * initialise GL et les donn�es, affecte les fonctions d'�v�nements et
+ * lance la boucle principale d'affichage.
+ */
 int main(int argc, char ** argv) {
-  if(!gl4duwCreateWindow(argc, argv, "GL4Dummies", 0, 0, 
-			 _wW, _wH, GL4DW_RESIZABLE | GL4DW_SHOWN))
+  if(!gl4duwCreateWindow(argc, argv, "DL4D-DarkestSun", 0, 0, 
+			 1280, 1024, SDL_WINDOW_SHOWN))
     return 1;
   init();
   atexit(quit);
-  gl4duwResizeFunc(resize);
+  gl4duwKeyDownFunc(keydown);
   gl4duwDisplayFunc(draw);
+  printf("valeur %f",_zoom);
   gl4duwMainLoop();
   return 0;
 }
-/*!\brief initialise les paramètres OpenGL et les données */
+
+/*!\brief initialise les param�tres OpenGL */
 static void init(void) {
+  initNoiseTextures();
   glEnable(GL_DEPTH_TEST);
-  glEnable(GL_CULL_FACE);
-  glClearColor(0.0f, 0.0f, 0.0f, 0.0f);
-  _pId  = gl4duCreateProgram("<vs>shaders/dep3d.vs", "<fs>shaders/dep3d.fs", NULL);
+  glClearColor(0.0f, 0.0f, 0.1f, 0.0f);
+  glViewport(0, 0, 1280, 1024);
   gl4duGenMatrix(GL_FLOAT, "modelViewMatrix");
   gl4duGenMatrix(GL_FLOAT, "projectionMatrix");
-  resize(_wW, _wH);
-  for (int i = 0; i < NUM_PARTICLES; ++i) {
-      particles[i].position[0] = (GLfloat)(rand() % 20 - 10); // Position x aléatoire entre -10 et 10
-      particles[i].position[1] = (GLfloat)(rand() % 20 - 10); // Position y aléatoire entre -10 et 10
-      particles[i].position[2] = (GLfloat)(rand() % 20 - 10); // Position z aléatoire entre -10 et 10
-      particles[i].color[0] = (GLfloat)rand() / RAND_MAX; // Composante rouge aléatoire entre 0 et 1
-      particles[i].color[1] = (GLfloat)rand() / RAND_MAX; // Composante verte aléatoire entre 0 et 1
-      particles[i].color[2] = (GLfloat)rand() / RAND_MAX; // Composante bleue aléatoire entre 0 et 1
-      particles[i].color[3] = 1.0f; // Opacité à 1
-
-
-       particles[i].sphereId = gl4dgGenSpheref(30, 30);
-        
-  }
-  
-}
-/*!\brief Cette fonction paramétre la vue (viewport) OpenGL en
- * fonction des dimensions de la fenêtre.*/
-static void resize(int w, int h) {
-  _wW  = w; _wH = h;
-  glViewport(0, 0, _wW, _wH);
   gl4duBindMatrix("projectionMatrix");
   gl4duLoadIdentityf();
-  gl4duFrustumf(-0.5, 0.5, -0.5 * _wH / _wW, 0.5 * _wH / _wW, 1.0, 1000.0);
-  //gl4duOrthof(-3.5, 3.5, -3.5 * _wH / _wW, 3.5 * _wH / _wW, 1.0, 1000.0);
+  gl4duFrustumf(-0.5, 0.5, -0.5, 0.5, 1.0, 1000.0);
   gl4duBindMatrix("modelViewMatrix");
+  _pId  = gl4duCreateProgram("<vs>shaders/basic.vs", "<fs>shaders/basic.fs", NULL);
+  _tid = gl4duCreateProgram("<vs>shaders/clasic.vs","<fs>shaders/clasic.fs",NULL);
+  _geom =  gl4dgGenSpheref(30, 30);
+  _disk = gl4dgGenDiskf(30);
 }
-/*!\brief dessine dans le contexte OpenGL actif. */
 
+static void keydown(int keycode) {
+  switch(keycode) {
+  case SDLK_DOWN:
+    _zoom -= 10.1;
+        printf("valeur zoom - : %f",_zoom);
+
+    break;
+  case SDLK_UP:
+    _zoom += 10.0;
+    printf("valeur zoom + : %f",_zoom);
+    break;
+  case SDLK_p:
+    _blur += 1;
+    break;
+  case SDLK_m:
+    _blur -= 1;
+    if(_blur < 0)
+      _blur = 0;
+    break;
+  case ' ':
+    _pause = !_pause;
+    break;
+  case SDLK_ESCAPE:
+  case 'q':
+    exit(0);
+  default:
+    break;
+  }
+}
+
+/*!\brief Cette fonction dessine dans le contexte OpenGL actif.*/
 static void draw(void) {
-    static GLfloat a = 0;
+    static GLfloat a0 = 0.0;
+    static Uint32 t0 = 0;
+    GLfloat dt = 0.0;
+    Uint32 t;
+    dt = ((t = SDL_GetTicks()) - t0) / 1000.0;
+    t0 = t;
+
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
     gl4duBindMatrix("modelViewMatrix");
-    gl4duLoadIdentityf(); // Réinitialise la matrice modèle à l'identité
-
+    gl4duLoadIdentityf();
+    gl4duTranslatef(0, 0, -10);
     glUseProgram(_pId);
-    gl4duTranslatef(0, 0, -25.0);
-    gl4duPushMatrix(); // Sauvegarde la matrice modèle
-    for (int i = 0; i < NUM_PARTICLES; ++i) {
-        printf("Particle %d - Position: (%f, %f, %f)\n", i, particles[i].position[0], particles[i].position[1], particles[i].position[2]); // Affiche les positions des particules
-        gl4duLoadIdentityf(); // Réinitialise la matrice modèle pour chaque particule
-        gl4duTranslatef(particles[i].position[0], particles[i].position[1], particles[i].position[2]);
-        glUniform4fv(glGetUniformLocation(_pId, "couleur"), 1, particles[i].color);
-        gl4dgDraw(particles[i].sphereId);
-    }
-    gl4duPopMatrix(); // Restaure la matrice modèle sauvegardée
+
+    // Dessin de la sphère
+    gl4duPushMatrix();
+    gl4duRotatef(1000 * a0, 0, 1, 0);
+    gl4duRotatef(a0, 1, 0, 0);
+    glUniform1f(glGetUniformLocation(_pId, "zoom"), _zoom);
+    glUniform1f(glGetUniformLocation(_pId, "temps"), _temps);
+    useNoiseTextures(_pId, 0);
     gl4duSendMatrices();
-    a++;
+    gl4dgDraw(_geom);
+    unuseNoiseTextures(0);
+    gl4duPopMatrix();
+
+    // Dessin du disque
+    gl4duLoadIdentityf();
+    gl4duPushMatrix();
+
+
+    gl4duTranslatef(0.0f, 0.0f, -10.0f); // Déplacement vers le bas et vers l'arrière
+    gl4duRotatef(90.0f, 1.0f, 0.0f, 0.0f);
+    gl4duRotatef(-a0*0.5f, 0, 1, 0);
+
+    gl4duScalef(10.0f, 10.0f, 10.0f);
+    glUniform1f(glGetUniformLocation(_pId, "zoom"), _zoom);
+    glUniform1f(glGetUniformLocation(_pId, "temps"), _temps);
+    gl4duSendMatrices();
+    gl4dgDraw(_disk);
+    gl4duPopMatrix();
+
+    if (!_pause)
+        _temps += dt / 50.0;
+
+    a0 += 360.0 * dt / (24.0 /* * 60.0 */);
+
+    gl4dfBlur(0, 0, _blur, 1, 0, GL_FALSE);
+    gl4dfSobelSetMixMode(GL4DF_SOBEL_MIX_MULT);
+    gl4dfSobel(0, 0, GL_FALSE);
 }
 
 
-/*!\brief appelée au moment de sortir du programme (atexit), libère les éléments utilisés */
+
+/*!\brief appel�e au moment de sortir du programme (atexit), lib�re les �l�ments utilis�s */
 static void quit(void) {
+  freeNoiseTextures();
   gl4duClean(GL4DU_ALL);
 }

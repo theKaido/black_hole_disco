@@ -1,7 +1,7 @@
 #  Makefile 
-#  Auteur : Farès BELHADJ
+#  Auteur : MATHANARUBAN Joony
 #  Email  : amsi@ai.univ-paris8.fr
-#  Date   : 29/01/2017
+#  Date   : 28/04/2024
 
 SHELL = /bin/sh
 # définition des commandes utilisées
@@ -18,14 +18,14 @@ CPPFLAGS = -I.
 LDFLAGS = -lm
 
 # définition des fichiers et dossiers
-PROGNAME = deplacements_3d
+PROGNAME = perlin_GPU
 VERSION = 1.0
 distdir = $(PROGNAME)-$(VERSION)
 HEADERS = 
-SOURCES = window.c
+SOURCES = window.c noise.c
 OBJ = $(SOURCES:.c=.o)
 DOXYFILE = documentation/Doxyfile
-EXTRAFILES = COPYING $(wildcard shaders/*.?s) 
+EXTRAFILES = COPYING $(wildcard shaders/*.?s)
 DISTFILES = $(SOURCES) Makefile $(HEADERS) $(DOXYFILE) $(EXTRAFILES)
 
 # Traitement automatique (ne pas modifier)
@@ -77,4 +77,4 @@ doc: $(DOXYFILE)
 	cd documentation && doxygen && cd ..
 
 clean:
-	@$(RM) -r $(PROGNAME) $(OBJ) *~ $(distdir).tgz gmon.out core.* documentation/*~ shaders/*~ GL4D/*~ documentation/html dna.txt assimp_log.txt
+	@$(RM) -r $(PROGNAME) $(OBJ) *~ $(distdir).tgz gmon.out core.* documentation/*~ shaders/*~ GL4D/*~ documentation/html
