@@ -1,6 +1,5 @@
 #  Makefile 
 #  Auteur : MATHANARUBAN Joony
-#  Email  : amsi@ai.univ-paris8.fr
 #  Date   : 28/04/2024
 
 SHELL = /bin/sh
@@ -18,11 +17,11 @@ CPPFLAGS = -I.
 LDFLAGS = -lm
 
 # définition des fichiers et dossiers
-PROGNAME = perlin_GPU
+PROGNAME = disco_ball
 VERSION = 1.0
 distdir = $(PROGNAME)-$(VERSION)
-HEADERS = 
-SOURCES = window.c noise.c
+HEADERS = audioHelper.h
+SOURCES = window.c noise.c audioHelper.c noisesec.c
 OBJ = $(SOURCES:.c=.o)
 DOXYFILE = documentation/Doxyfile
 EXTRAFILES = COPYING $(wildcard shaders/*.?s)
@@ -50,7 +49,7 @@ else
 endif
 
 CPPFLAGS += $(shell sdl2-config --cflags)
-LDFLAGS  += -lGL4Dummies $(shell sdl2-config --libs)
+LDFLAGS  += -lGL4Dummies $(shell sdl2-config --libs) -lSDL2_mixer
 
 all: $(PROGNAME)
 
