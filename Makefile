@@ -17,11 +17,11 @@ CPPFLAGS = -I.
 LDFLAGS = -lm
 
 # définition des fichiers et dossiers
-PROGNAME = disco_ball
+PROGNAME = black_hole
 VERSION = 1.0
 distdir = $(PROGNAME)-$(VERSION)
-HEADERS = audioHelper.h
-SOURCES = window.c noise.c audioHelper.c noisesec.c
+HEADERS = 
+SOURCES = window.c noise.c
 OBJ = $(SOURCES:.c=.o)
 DOXYFILE = documentation/Doxyfile
 EXTRAFILES = COPYING $(wildcard shaders/*.?s)

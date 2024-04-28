@@ -108,3 +108,75 @@ extern void freeNoiseTextures(void) {
   permTexId = 0; gradTexId = 0;
 }
 
+extern void initNoiseTexturesforSurface(void) {
+  int i, j, k, i8;
+  GLubyte * buffer, v;
+
+  if(permTexId || gradTexId)
+    return;
+
+  buffer = malloc( (1 << 18)/* 4 * 256 * 256 */ * sizeof *buffer); assert(buffer);
+
+  for(i = 0; i < 256; i++) {
+    i8 = i << 8;
+    for(j = 0; j < 256; j++) {
+      k = (i8 + j) << 2;
+      v = perm[(j + perm[i]) & 0xFF];
+      buffer[k + 0] = (grad4[v & 0x1F][0] << 6) + 64;
+      buffer[k + 1] = (grad4[v & 0x1F][1] << 6) + 64;
+      buffer[k + 2] = (grad4[v & 0x1F][2] << 6) + 64;
+      buffer[k + 3] = (grad4[v & 0x1F][3] << 6) + 64;
+    }
+  }
+  glActiveTexture(GL_TEXTURE2);
+  glGenTextures(1, &gradTexId);
+  glBindTexture(GL_TEXTURE_2D, gradTexId);
+  glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
+  glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
+  glTexImage2D( GL_TEXTURE_2D, 0, GL_RGBA, 256, 256, 0, GL_RGBA, GL_UNSIGNED_BYTE, buffer );
+
+  for(i = 0; i < 256; i++) {
+    i8 = i << 8;
+    for(j = 0; j < 256; j++) {
+      k = (i8 + j) << 2;
+      buffer[k + 3] = (v = perm[(j + perm[i]) & 0xFF]);
+      buffer[k + 0] = (grad3[v & 0x0F][0] << 6) + 64;
+      buffer[k + 1] = (grad3[v & 0x0F][1] << 6) + 64;
+      buffer[k + 2] = (grad3[v & 0x0F][2] << 6) + 64;
+    }
+  }
+  glActiveTexture(GL_TEXTURE1);
+  glGenTextures(1, &permTexId);
+  glBindTexture(GL_TEXTURE_2D, permTexId);
+  glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
+  glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
+  glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, 256, 256, 0, GL_RGBA, GL_UNSIGNED_BYTE, buffer);
+  glActiveTexture(GL_TEXTURE0);
+
+  free(buffer);
+}
+
+extern void useNoiseTexturesforSurface(GLuint pid, int shift) {
+  glActiveTexture(GL_TEXTURE1 + shift);
+  glBindTexture(GL_TEXTURE_2D, gradTexId);
+  glActiveTexture(GL_TEXTURE0 + shift);
+  glBindTexture(GL_TEXTURE_2D, permTexId);
+  glUniform1i(glGetUniformLocation(pid, "permTexture"), shift);
+  glUniform1i(glGetUniformLocation(pid, "gradTexture"), shift + 1);
+  glActiveTexture(GL_TEXTURE0);
+}
+
+extern void unuseNoiseTexturesforSurface(int shift) {
+  glActiveTexture(GL_TEXTURE1 + shift);
+  glBindTexture(GL_TEXTURE_2D, 0);
+  glActiveTexture(GL_TEXTURE0 + shift);
+  glBindTexture(GL_TEXTURE_2D, 0);
+  glActiveTexture(GL_TEXTURE0);
+}
+
+extern void freeNoiseTexturesforSurface(void) {
+  glDeleteTextures(1, &gradTexId);
+  glDeleteTextures(1, &permTexId);
+  permTexId = 0; gradTexId = 0;
+}
+

@@ -1,7 +1,7 @@
  #version 330
 in vec2 vsoTexCoord;
 in vec4 vsoPos;
-uniform float zoom;
+uniform float fond;
 out vec4 fragColor;
 
 uniform sampler2D permTexture;
@@ -58,11 +58,11 @@ float snoise(vec2 P) {
 }
 
 void main() {
-    float frequency = 35.0;
+    float frequency = 1.5;
     
     // Calcul des bruits Perlin et Simplex avec une fréquence et zoom
-    float perlin_noise = noise(vsoTexCoord * zoom * frequency);
-    float simplex_noise = snoise(vsoTexCoord * zoom );
+    float perlin_noise = noise(vsoTexCoord * fond * frequency);
+    float simplex_noise = snoise(vsoTexCoord * fond );
     
     // Calcul des normales perturbées
     vec3 normal = normalize(vec3(perlin_noise, simplex_noise, 1.0));
@@ -71,8 +71,8 @@ void main() {
     vec3 bumped_position = vsoPos.xyz + normal * 0.1;
     
     // Calcul de la couleur en utilisant les bruits Perlin et Simplex
-    vec3 color = vec3(perlin_noise + simplex_noise*0.2, perlin_noise + simplex_noise*0.0, perlin_noise + simplex_noise*30); 
-    
+        vec3 color = vec3(perlin_noise * simplex_noise*10, perlin_noise *simplex_noise*10, perlin_noise * simplex_noise*10); 
+
     fragColor = vec4(color, bumped_position);
 }
 
