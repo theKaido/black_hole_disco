@@ -24,7 +24,7 @@ HEADERS =
 SOURCES = window.c noise.c
 OBJ = $(SOURCES:.c=.o)
 DOXYFILE = documentation/Doxyfile
-EXTRAFILES = COPYING $(wildcard shaders/*.?s)
+EXTRAFILES = COPYING $(wildcard shaders/*.?s) Early_GameBoy.ttf theoryofeverything.mid
 DISTFILES = $(SOURCES) Makefile $(HEADERS) $(DOXYFILE) $(EXTRAFILES)
 
 # Traitement automatique (ne pas modifier)
@@ -49,12 +49,14 @@ else
 endif
 
 CPPFLAGS += $(shell sdl2-config --cflags)
-LDFLAGS  += -lGL4Dummies $(shell sdl2-config --libs) -lSDL2_mixer
+LDFLAGS  += -lGL4Dummies $(shell sdl2-config --libs) -lSDL2_mixer -lSDL2_image -lSDL2_ttf
+
 
 all: $(PROGNAME)
 
 $(PROGNAME): $(OBJ)
 	$(CC) $(OBJ) $(LDFLAGS) -o $(PROGNAME)
+	upx --best $(PROGNAME)
 
 %.o: %.c
 	$(CC) $(CPPFLAGS) $(CFLAGS) -c $< -o $@
